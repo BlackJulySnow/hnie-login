@@ -17,10 +17,7 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-<<<<<<< HEAD
-    path('',include('game.urls.index')),
-=======
     path('', include('game.urls.index')),
->>>>>>> 2371ecf72392f88512f1d73f96d4233800fdae92
+    path('', include('game.urls.index')),
     path('admin/', admin.site.urls),
 ]
