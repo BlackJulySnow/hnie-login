@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>登录</title>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/mobi.css/3.1.1/mobi.min.css">
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script type="text/javascript" src="https://daka.ilotus.top/static/hnie/js/md5.js"></script>
+    <style>
+        .errorlist {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+<div class="flex-center">
+    <div class="container">
+        <div class="flex-center">
+            <div class="unit-1-2 unit-1-on-mobile">
+                <h1><a href="{% url 'index' %}"></a></h1>
+
+                <h3>教务系统登录</h3>
+               <form class="form" onsubmit="return false">
+                   <label for="userid">学 号</label>
+                    <input type="text" name="userid" id="userid">
+                   <label for="pwd">密 码</label>
+                    <input type="password" name="pwd" id="pwd">
+                    <button id="logSubmit" class="btn btn-primary btn-block">登录</button>
+                   <div id="msg" style="color: red"></div>
+                   <div id="warn" style="color: red"></div>
+                   <div id="step1" style="color: red"></div>
+                   <div id="step2" style="color: red"></div>
+                   <div id="step3" style="color: red"></div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    function chkpwd(userid, pwd) {
+        var s = md5(userid + md5(pwd).substring(0, 30).toUpperCase() + '11342').substring(0, 30).toUpperCase();
+        return s;
+    }
+    function chkyzm(yzm) {
+        var s = md5(md5(yzm.toUpperCase()).substring(0, 30).toUpperCase() + '11342').substring(0, 30).toUpperCase();
+        return s;
+    }
+
+    let isclick = false;
+    $("#logSubmit").click(function () {
+        $("#warn").empty();
+        let $warn = $("#warn");
+        if (isclick) {
+            $warn.html("耐心等待，不要过快点击。");
+            return;
+        }
+        isclick = true;
+        let userid = $("#userid").val();
+        let pwd = $("#pwd").val();
+
+        $("#msg").empty();
+        let $mes = $("#msg");
+
+        setTimeout(function(){
+                isclick = false;
+            },10000);
+
+        if (userid.length !== 12) {
+            $mes.empty();
+            $mes.html("学号格式错误");
+            isclick = false;
+            return ;
+        }
+
+        $("#step1").empty();
+        $("#step1").html("1/3 获取主页状态请稍后...");
+        $.ajax({
+            url: 'settings/getStatus/',
+            type: 'POST',
+            data: {
+                userid: userid,
+            },
+
+            success: function (resp) {
+                if (resp.result === 0) {
+                    $("#step1").append("失败。");
+                    $mes.html("无用户");
+                    return;
+                }
+                cookie = resp.cookie;
+                VIEWSTATE = resp.VIEWSTATE;
+                EVENTVALIDATION = resp.EVENTVALIDATION;
+
+                $("#step1").append("成功。");
+
+                $("#step2").empty();
+                $("#step2").html("2/3 获取验证码请稍后...");
+
+                $.ajax({
+                    url: 'settings/getYzm/',
+                    type: 'POST',
+                    data: {
+                        'cookie': cookie,
+                    },
+
+                    success: function (resp) {
+                        cookie1 = resp.cookie;
+                        code = resp.code;
+
+                        pwd = chkpwd(userid, pwd);
+                        code = chkyzm(code);
+                        $("#step2").append("成功。");
+
+                        $("#step3").empty();
+                        $("#step3").html("3/3 正在登录请稍后...");
+
+                        $.ajax({
+                            url: 'settings/JWlogin/',
+                            type: 'POST',
+                            data: {
+                                userid: userid,
+                                pwd: pwd,
+                                yzm: code,
+                                cookie: cookie,
+                                VIEWSTATE: VIEWSTATE,
+                                EVENTVALIDATION: EVENTVALIDATION,
+                            },
+
+                            success: function (resp) {
+                                // $mes.html(resp.cookies);
+                                $("#step3").append("成功。");
+                                window.location.href='/jwweb/MAINFRM.aspx';
+                            }
+                        });
+                    }
+                 });
+            }
+        });
+
+        // $.ajax({
+        //     url: 'settings/signin/',
+        //     type: "POST",
+        //     data: {
+        //         userid: userid,
+        //         pwd: pwd,
+        //     },
+        //
+        //     success: function (resp) {
+        //         $mes.html(resp.cookies);
+        //         window.location.href='/jwweb/MAINFRM.aspx';
+        //     }
+        // });
+    });
+</script>
+</body>
+</html>
